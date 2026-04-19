@@ -14,7 +14,7 @@ func UpdateLauncherAccount(email string) error {
 	launcherDataPath := filepath.Dir(paths.LauncherSettingsPath)
 
 	// Read existing settings or create new
-	var settings map[string]interface{}
+	var settings map[string]any
 
 	data, err := os.ReadFile(paths.LauncherSettingsPath)
 	if err == nil {
@@ -22,7 +22,7 @@ func UpdateLauncherAccount(email string) error {
 	}
 
 	if settings == nil {
-		settings = make(map[string]interface{})
+		settings = make(map[string]any)
 	}
 
 	// Update login email and settings
@@ -76,13 +76,13 @@ func RestoreLauncherSession(sessionData json.RawMessage) error {
 	paths := config.GetPaths()
 
 	// Parse saved session
-	var savedSession map[string]interface{}
+	var savedSession map[string]any
 	if err := json.Unmarshal(sessionData, &savedSession); err != nil {
 		return err
 	}
 
 	// Read existing launcher settings to preserve game state
-	var existingSettings map[string]interface{}
+	var existingSettings map[string]any
 
 	data, err := os.ReadFile(paths.LauncherSettingsPath)
 	if err == nil {
@@ -90,7 +90,7 @@ func RestoreLauncherSession(sessionData json.RawMessage) error {
 	}
 
 	if existingSettings == nil {
-		existingSettings = make(map[string]interface{})
+		existingSettings = make(map[string]any)
 		// Copy all from saved session as base
 		for k, v := range savedSession {
 			existingSettings[k] = v
@@ -127,23 +127,6 @@ func RestoreLauncherSession(sessionData json.RawMessage) error {
 	return nil
 }
 
-// ReadLauncherSettings reads the current launcher settings
-func ReadLauncherSettings() (map[string]interface{}, error) {
-	paths := config.GetPaths()
-
-	data, err := os.ReadFile(paths.LauncherSettingsPath)
-	if err != nil {
-		return nil, err
-	}
-
-	var settings map[string]interface{}
-	if err := json.Unmarshal(data, &settings); err != nil {
-		return nil, err
-	}
-
-	return settings, nil
-}
-
 // GetGameSettingsPath returns the path to the EFT Game.ini file
 func GetGameSettingsPath() string {
 	appData := os.Getenv("APPDATA")
@@ -157,7 +140,7 @@ func ReadEnvironmentUiType() string {
 		return ""
 	}
 
-	var gameSettings map[string]interface{}
+	var gameSettings map[string]any
 	if err := json.Unmarshal(data, &gameSettings); err != nil {
 		return ""
 	}
@@ -182,7 +165,7 @@ func WriteEnvironmentUiType(envType string) error {
 		return err // Game.ini must exist
 	}
 
-	var gameSettings map[string]interface{}
+	var gameSettings map[string]any
 	if err := json.Unmarshal(data, &gameSettings); err != nil {
 		return err
 	}

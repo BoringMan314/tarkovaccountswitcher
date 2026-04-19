@@ -8,9 +8,6 @@ import (
 var (
 	currentLanguage = "en"
 	languageMutex   sync.RWMutex
-
-	// LanguageChangedCallback is called when the language changes
-	LanguageChangedCallback func()
 )
 
 // Translation keys
@@ -218,15 +215,12 @@ var translations = map[string]map[string]string{
 
 // SetLanguage sets the current language
 func SetLanguage(lang string) {
+	if lang != "de" && lang != "en" {
+		return
+	}
 	languageMutex.Lock()
-	if lang == "de" || lang == "en" {
-		currentLanguage = lang
-	}
+	currentLanguage = lang
 	languageMutex.Unlock()
-
-	if LanguageChangedCallback != nil {
-		LanguageChangedCallback()
-	}
 }
 
 // GetLanguage returns the current language

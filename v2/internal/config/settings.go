@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 )
 
@@ -18,18 +19,22 @@ type Settings struct {
 
 // Paths holds all the important file paths for the application
 type Paths struct {
-	DataDir            string
-	AccountsFile       string
-	SettingsFile       string
-	KeyFile            string
-	TempFolder         string
+	DataDir              string
+	AccountsFile         string
+	SettingsFile         string
+	KeyFile              string
+	TempFolder           string
 	LauncherSettingsPath string
 }
 
+const defaultLauncherPath = `C:\Battlestate Games\BsgLauncher\BsgLauncher.exe`
+
 var (
-	appPaths       *Paths
-	pathsOnce      sync.Once
-	cachedSettings *Settings
+	appPaths  *Paths
+	pathsOnce sync.Once
+
+	settingsMu sync.Mutex
+	cached     *Settings
 )
 
 // GetPaths returns the application paths, initializing them exactly once
@@ -56,91 +61,78 @@ func EnsureDataDir() error {
 	if err := os.MkdirAll(paths.DataDir, 0755); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(paths.TempFolder, 0755); err != nil {
-		return err
-	}
-	return nil
+	return os.MkdirAll(paths.TempFolder, 0755)
 }
 
-// GetSettings returns cached settings or loads from file
-func GetSettings() *Settings {
-	if cachedSettings != nil {
-		return cachedSettings
+// loadLocked returns the cached settings, populating from disk on first call.
+// Caller must hold settingsMu.
+func loadLocked() *Settings {
+	if cached != nil {
+		return cached
 	}
-
-	paths := GetPaths()
-
-	settings := &Settings{
-		LauncherPath: `C:\Battlestate Games\BsgLauncher\BsgLauncher.exe`,
-		Language:     "",
+	s := &Settings{LauncherPath: defaultLauncherPath}
+	if data, err := os.ReadFile(GetPaths().SettingsFile); err == nil {
+		_ = json.Unmarshal(data, s)
 	}
-
-	data, err := os.ReadFile(paths.SettingsFile)
-	if err != nil {
-		cachedSettings = settings
-		return settings
-	}
-
-	json.Unmarshal(data, settings)
-	cachedSettings = settings
-	return settings
+	cached = s
+	return s
 }
 
-// SaveSettings saves settings to file and updates cache
-func SaveSettings(settings *Settings) error {
-	paths := GetPaths()
-
-	data, err := json.MarshalIndent(settings, "", "  ")
+// writeLocked persists the cached settings to disk.
+// Caller must hold settingsMu.
+func writeLocked() error {
+	data, err := json.MarshalIndent(cached, "", "  ")
 	if err != nil {
 		return err
 	}
+	return os.WriteFile(GetPaths().SettingsFile, data, 0644)
+}
 
-	if err := os.WriteFile(paths.SettingsFile, data, 0644); err != nil {
-		return err
-	}
+// update mutates the cached settings under lock and persists the result.
+func update(mutate func(*Settings)) error {
+	settingsMu.Lock()
+	defer settingsMu.Unlock()
+	mutate(loadLocked())
+	return writeLocked()
+}
 
-	cachedSettings = settings
-	return nil
+// GetSettings returns a snapshot of the current settings.
+func GetSettings() Settings {
+	settingsMu.Lock()
+	defer settingsMu.Unlock()
+	return *loadLocked()
 }
 
 // SetLanguage sets and saves the language setting
 func SetLanguage(language string) error {
-	settings := GetSettings()
-	settings.Language = language
-	return SaveSettings(settings)
+	return update(func(s *Settings) { s.Language = language })
 }
 
 // SetLauncherPath sets and saves the launcher path setting
 func SetLauncherPath(launcherPath string) error {
-	settings := GetSettings()
-	settings.LauncherPath = launcherPath
-	return SaveSettings(settings)
+	return update(func(s *Settings) { s.LauncherPath = launcherPath })
 }
 
 // SetStreamerMode sets and saves the streamer mode setting
 func SetStreamerMode(enabled bool) error {
-	settings := GetSettings()
-	settings.StreamerMode = enabled
-	return SaveSettings(settings)
+	return update(func(s *Settings) { s.StreamerMode = enabled })
 }
 
 // SetTheme sets and saves the theme setting
 func SetTheme(id string) error {
-	settings := GetSettings()
-	settings.Theme = id
-	return SaveSettings(settings)
+	return update(func(s *Settings) { s.Theme = id })
 }
 
 // SetAutoStart sets and saves the autostart setting
 func SetAutoStart(enabled bool) error {
-	settings := GetSettings()
-	settings.AutoStart = enabled
-	return SaveSettings(settings)
+	return update(func(s *Settings) { s.AutoStart = enabled })
 }
 
 // IsStreamerMode returns whether streamer mode is enabled
 func IsStreamerMode() bool {
-	return GetSettings().StreamerMode
+	settingsMu.Lock()
+	defer settingsMu.Unlock()
+	return loadLocked().StreamerMode
 }
 
 // MaskEmail masks an email for streamer mode (e.g. "test@email.com" -> "t***@e***.com")
@@ -149,55 +141,18 @@ func MaskEmail(email string) string {
 		return email
 	}
 
-	// Find @ position
-	atIdx := -1
-	for i, c := range email {
-		if c == '@' {
-			atIdx = i
-			break
-		}
-	}
-
-	if atIdx <= 0 {
+	at := strings.IndexByte(email, '@')
+	if at <= 0 {
 		return "****"
 	}
 
-	// Mask local part (before @)
-	local := email[:atIdx]
-	domain := email[atIdx+1:]
+	local := email[:at]
+	domain := email[at+1:]
+	maskedLocal := local[:1] + "***"
 
-	maskedLocal := string(local[0]) + "***"
-
-	// Mask domain (after @)
-	dotIdx := -1
-	for i, c := range domain {
-		if c == '.' {
-			dotIdx = i
-			break
-		}
+	dot := strings.IndexByte(domain, '.')
+	if dot <= 0 {
+		return maskedLocal + "@***"
 	}
-
-	var maskedDomain string
-	if dotIdx > 0 {
-		maskedDomain = string(domain[0]) + "***" + domain[dotIdx:]
-	} else {
-		maskedDomain = "***"
-	}
-
-	return maskedLocal + "@" + maskedDomain
-}
-
-// GetSystemLanguage returns the system language (de or en)
-func GetSystemLanguage() string {
-	// Try to get system locale from environment
-	for _, env := range []string{"LANG", "LC_ALL", "LC_MESSAGES"} {
-		if locale := os.Getenv(env); locale != "" {
-			if len(locale) >= 2 && locale[:2] == "de" {
-				return "de"
-			}
-		}
-	}
-
-	// Default to English
-	return "en"
+	return maskedLocal + "@" + domain[:1] + "***" + domain[dot:]
 }

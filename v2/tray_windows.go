@@ -119,7 +119,62 @@ var (
 	procGetModuleHandleW    = kernel32dll.NewProc("GetModuleHandleW")
 	procGetCurrentProcessId = kernel32dll.NewProc("GetCurrentProcessId")
 	procShellNotifyIconW    = shell32dll.NewProc("Shell_NotifyIconW")
+	procGetWindowRect       = user32dll.NewProc("GetWindowRect")
+	procSetWindowPos        = user32dll.NewProc("SetWindowPos")
+	procGetDpiForWindow     = user32dll.NewProc("GetDpiForWindow")
 )
+
+const (
+	swpNoMove     = 0x0002
+	swpNoZOrder   = 0x0004
+	swpNoActivate = 0x0010
+)
+
+type winRect struct {
+	Left, Top, Right, Bottom int32
+}
+
+// findMainWindow returns the HWND of our main Wails window, located by title.
+// Returns 0 if not found.
+func findMainWindow() uintptr {
+	title, err := syscall.UTF16PtrFromString("Tarkov Account Switcher")
+	if err != nil {
+		return 0
+	}
+	hwnd, _, _ := procFindWindowW.Call(0, uintptr(unsafe.Pointer(title)))
+	return hwnd
+}
+
+// setWindowHeight resizes the main application window to the given logical
+// height, preserving current width and position. Uses native Win32 to avoid
+// Wails' WindowSetSize DPI round-trip that shrinks width each call.
+func setWindowHeight(logicalHeight int) {
+	hwnd := findMainWindow()
+	if hwnd == 0 {
+		return
+	}
+
+	// Scale logical pixels to physical using the window's current DPI.
+	dpi := float64(96)
+	if ret, _, _ := procGetDpiForWindow.Call(hwnd); ret >= 48 {
+		dpi = float64(ret)
+	}
+	physicalHeight := int(float64(logicalHeight) * dpi / 96.0)
+
+	var r winRect
+	if ret, _, _ := procGetWindowRect.Call(hwnd, uintptr(unsafe.Pointer(&r))); ret == 0 {
+		return
+	}
+	curWidth := int(r.Right - r.Left)
+
+	procSetWindowPos.Call(
+		hwnd,
+		0,
+		0, 0,
+		uintptr(curWidth), uintptr(physicalHeight),
+		swpNoMove|swpNoZOrder|swpNoActivate,
+	)
+}
 
 // Tray holds system tray state
 type Tray struct {
@@ -233,7 +288,6 @@ func startTray(iconData []byte, tooltip string, onShow func(), onQuit func()) {
 			hInstance,
 			0,
 		)
-		globalTray.hwnd = hwnd
 
 		// Write icon to temp file so LoadImage can read it
 		var hIcon uintptr
@@ -268,6 +322,7 @@ func startTray(iconData []byte, tooltip string, onShow func(), onQuit func()) {
 		procShellNotifyIconW.Call(nimAdd, uintptr(unsafe.Pointer(&nid)))
 
 		globalTray.mu.Lock()
+		globalTray.hwnd = hwnd
 		globalTray.nid = nid
 		globalTray.running = true
 		globalTray.mu.Unlock()

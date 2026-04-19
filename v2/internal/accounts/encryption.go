@@ -8,39 +8,37 @@ import (
 	"errors"
 	"os"
 	"strings"
+	"sync"
 
 	"tarkov-account-switcher/internal/config"
 )
 
-var encryptionKey []byte
+var (
+	encryptionKey []byte
+	keyOnce       sync.Once
+	keyErr        error
+)
 
-// GetOrCreateKey loads or creates the encryption key
+// GetOrCreateKey loads or creates the encryption key exactly once.
 func GetOrCreateKey() ([]byte, error) {
-	if encryptionKey != nil {
-		return encryptionKey, nil
-	}
-
-	paths := config.GetPaths()
-
-	// Try to read existing key
-	key, err := os.ReadFile(paths.KeyFile)
-	if err == nil && len(key) == 32 {
+	keyOnce.Do(func() {
+		paths := config.GetPaths()
+		if key, err := os.ReadFile(paths.KeyFile); err == nil && len(key) == 32 {
+			encryptionKey = key
+			return
+		}
+		key := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			keyErr = err
+			return
+		}
+		if err := os.WriteFile(paths.KeyFile, key, 0600); err != nil {
+			keyErr = err
+			return
+		}
 		encryptionKey = key
-		return encryptionKey, nil
-	}
-
-	// Create new key
-	key = make([]byte, 32)
-	if _, err := rand.Read(key); err != nil {
-		return nil, err
-	}
-
-	if err := os.WriteFile(paths.KeyFile, key, 0600); err != nil {
-		return nil, err
-	}
-
-	encryptionKey = key
-	return encryptionKey, nil
+	})
+	return encryptionKey, keyErr
 }
 
 // Encrypt encrypts plaintext using AES-256-CBC
@@ -62,10 +60,10 @@ func Encrypt(plaintext string) (string, error) {
 		return "", err
 	}
 
-	// Pad plaintext to block size
+	// Pad plaintext to block size (PKCS7)
 	plainBytes := []byte(plaintext)
 	padding := aes.BlockSize - (len(plainBytes) % aes.BlockSize)
-	for i := 0; i < padding; i++ {
+	for range padding {
 		plainBytes = append(plainBytes, byte(padding))
 	}
 

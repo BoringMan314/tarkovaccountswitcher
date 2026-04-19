@@ -56,7 +56,7 @@ func (a *App) domReady(ctx context.Context) {
 
 	// Background update check
 	updater.CheckAsync(func(result updater.Result) {
-		wailsRuntime.EventsEmit(a.ctx, "update-available", map[string]interface{}{
+		wailsRuntime.EventsEmit(a.ctx, "update-available", map[string]any{
 			"stable": result.StableUpdate,
 			"beta":   result.BetaUpdate,
 		})
@@ -108,15 +108,49 @@ func toDTO(acc accounts.Account) AccountDTO {
 
 // GetAccounts returns all accounts as DTOs
 func (a *App) GetAccounts() ([]AccountDTO, error) {
-	accs, err := accounts.GetAccounts()
+	accs, err := accounts.ListAccounts()
 	if err != nil {
 		return nil, err
 	}
+	a.resizeWindowToFit(len(accs))
 	dtos := make([]AccountDTO, len(accs))
 	for i, acc := range accs {
 		dtos[i] = toDTO(acc)
 	}
 	return dtos, nil
+}
+
+// resizeWindowToFit sizes the window to comfortably fit the given number of
+// account cards. Called on every accounts list fetch; the window grows or
+// shrinks with the list. Uses a native Win32 SetWindowPos helper so the
+// user's manual width stays intact (Wails' WindowSetSize is not DPI-stable
+// on Windows when the width is round-tripped back in).
+func (a *App) resizeWindowToFit(count int) {
+	const (
+		chrome  = 180 // title bar + tab bar + panel padding + update banner room
+		perCard = 100 // card body + 6px gap — generous to avoid any overflow
+		safety  = 40
+		floor   = 380
+	)
+	needed := floor
+	if count > 0 {
+		needed = chrome + perCard*count + safety
+		if needed < floor {
+			needed = floor
+		}
+	}
+	if screens, err := wailsRuntime.ScreenGetAll(a.ctx); err == nil {
+		for _, s := range screens {
+			if !s.IsCurrent {
+				continue
+			}
+			if max := s.Size.Height - 80; needed > max {
+				needed = max
+			}
+			break
+		}
+	}
+	setWindowHeight(needed)
 }
 
 // SwitchResultDTO is the result of a switch operation

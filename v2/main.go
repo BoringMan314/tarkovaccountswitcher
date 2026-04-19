@@ -58,7 +58,7 @@ func main() {
 			WindowIsTranslucent:  false,
 			DisableWindowIcon:    false,
 		},
-		Bind: []interface{}{
+		Bind: []any{
 			app,
 		},
 	})

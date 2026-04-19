@@ -1,13 +1,45 @@
 # Changelog - Tarkov Account Switcher v2
 
+## v2.0.6 (2026-04-19)
+
+### New Features
+- **Code-signed binary** — Now signed with Certum Open Source Code Signing certificate (Open Source Developer Martin Wilke). No more SmartScreen warnings on install.
+- **Auto-resize window to accounts list** — Window grows/shrinks to fit the number of accounts, no more internal scrolling in the accounts tab. Uses native Win32 `SetWindowPos` with DPI-aware scaling; user's width stays intact.
+
+### Thread-safety
+- `accounts.json` reads/writes are now serialized via a package-level mutex — eliminates lost-update races between the session watcher and UI operations.
+- `cachedSettings` guarded by a mutex; `GetSettings()` now returns a snapshot by value instead of a shared pointer.
+- Encryption key initialized once via `sync.Once`.
+
+### Correctness
+- `saveAccounts` no longer silently swallows encryption errors (could have dropped session data).
+- `GetSystemLanguage` on Windows uses `GetUserDefaultUILanguage` Win32 API — previously fell through `LANG`/`LC_ALL` env vars which are ~never set on Windows, so German users always got English.
+- Account list no longer decrypts every session on display (only on switch) — less AES work per list refresh, no plaintext in DTOs.
+
+### Dependency Bumps
+- Go 1.22 → 1.23 (toolchain 1.23.6 → 1.26.2)
+- Wails v2.11.0 → v2.12.0
+
+### Cleanup
+- Removed dead code: `accounts.{StopWatcher, IsWatching, GetWatchingAccountID}`, `launcher.ReadLauncherSettings`, `config.IsAutoStartEnabled`, `i18n.LanguageChangedCallback`.
+- Simplified `Account.HasSession`; cleaned up `MaskEmail` with `strings.IndexByte`.
+- Modernized `interface{}` → `any`, `for i := 0; i < n; i++` → `for range n`.
+- Tightened tray mutex coverage (hwnd write now under lock).
+- Net −128 LOC across 14 files.
+
+---
+
 ## v2.0.5 (2026-03-18)
+
+### New Feature
+- **Windows Autostart** — Toggle in Settings to auto-launch on Windows login (Registry-based)
 
 ### Code Quality & Security
 - Encrypt account sessions (AES-256-CBC) on disk — auth tokens no longer stored as plaintext
 - Auto-migrate existing plaintext sessions on first load
 - Cache settings in memory instead of reading from disk on every call
 - Poll for launcher exit instead of fixed 1.5s sleep (faster UI response)
-- i18n: switch result messages and tray menu now properly translated
+- i18n: all hardcoded strings now properly translated (switch messages, tray menu, quit button)
 - Remove duplicated session capture code (single BuildAuthSession function)
 - Remove unused singleinstance package (Wails built-in SingleInstanceLock)
 - Thread-safe path initialization via sync.Once

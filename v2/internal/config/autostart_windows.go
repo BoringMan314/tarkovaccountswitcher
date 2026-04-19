@@ -10,18 +10,16 @@ const registryKey = `Software\Microsoft\Windows\CurrentVersion\Run`
 const appName = "TarkovAccountSwitcher"
 
 var (
-	advapi32         = syscall.NewLazyDLL("advapi32.dll")
-	regOpenKeyExW    = advapi32.NewProc("RegOpenKeyExW")
-	regSetValueExW   = advapi32.NewProc("RegSetValueExW")
-	regDeleteValueW  = advapi32.NewProc("RegDeleteValueW")
-	regQueryValueExW = advapi32.NewProc("RegQueryValueExW")
-	regCloseKey      = advapi32.NewProc("RegCloseKey")
+	advapi32        = syscall.NewLazyDLL("advapi32.dll")
+	regOpenKeyExW   = advapi32.NewProc("RegOpenKeyExW")
+	regSetValueExW  = advapi32.NewProc("RegSetValueExW")
+	regDeleteValueW = advapi32.NewProc("RegDeleteValueW")
+	regCloseKey     = advapi32.NewProc("RegCloseKey")
 )
 
 const (
 	hkeyCurrentUser = 0x80000001
 	keyWrite        = 0x20006
-	keyRead         = 0x20019
 	regSZ           = 1
 )
 
@@ -31,22 +29,6 @@ func ApplyAutoStart(enabled bool) error {
 		return setAutoStartRegistry()
 	}
 	return removeAutoStartRegistry()
-}
-
-// IsAutoStartEnabled checks if the autostart registry entry exists
-func IsAutoStartEnabled() bool {
-	keyPath, _ := syscall.UTF16PtrFromString(registryKey)
-	valueName, _ := syscall.UTF16PtrFromString(appName)
-
-	var hKey uintptr
-	ret, _, _ := regOpenKeyExW.Call(hkeyCurrentUser, uintptr(unsafe.Pointer(keyPath)), 0, keyRead, uintptr(unsafe.Pointer(&hKey)))
-	if ret != 0 {
-		return false
-	}
-	defer regCloseKey.Call(hKey)
-
-	ret, _, _ = regQueryValueExW.Call(hKey, uintptr(unsafe.Pointer(valueName)), 0, 0, 0, 0)
-	return ret == 0
 }
 
 func setAutoStartRegistry() error {
