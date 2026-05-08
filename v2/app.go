@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	_ "embed"
+	"fmt"
 
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -30,10 +31,13 @@ func (a *App) startup(ctx context.Context) {
 
 	// Load settings and set language
 	settings := config.GetSettings()
-	if settings.Language != "" {
+	if i18n.IsSupportedLocale(settings.Language) {
 		i18n.SetLanguage(settings.Language)
 	} else {
 		i18n.SetLanguage(config.GetSystemLanguage())
+		if settings.Language != "" && settings.Language != i18n.GetLanguage() {
+			_ = config.SetLanguage(i18n.GetLanguage())
+		}
 	}
 
 	// Session captured callback -> emit event to frontend
@@ -212,6 +216,9 @@ func (a *App) GetSettings() SettingsDTO {
 
 // SetLanguage changes the language
 func (a *App) SetLanguage(lang string) error {
+	if !i18n.IsSupportedLocale(lang) {
+		return fmt.Errorf("unsupported language: %q", lang)
+	}
 	err := config.SetLanguage(lang)
 	if err != nil {
 		return err
