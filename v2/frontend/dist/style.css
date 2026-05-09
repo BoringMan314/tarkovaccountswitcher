@@ -691,7 +691,7 @@ a:hover {
 .help-text.small {
     font-size: 11px;
     text-align: left;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 
 /* ============================================================
@@ -798,6 +798,19 @@ a:hover {
     padding: 8px 0;
     min-height: 20px;
     white-space: pre-line;
+}
+
+/* Settings: spacer sits above status so flex growth is between the form and the
+   bottom block (status + quit). Keeps feedback close to the button; spacer keeps
+   a minimum gap on short windows. */
+#panel-settings #settings-status {
+    flex-shrink: 0;
+    margin-bottom: 10px;
+}
+
+#panel-settings > .spacer {
+    flex: 1 1 0;
+    min-height: 12px;
 }
 
 .status-message.success { color: var(--success); }

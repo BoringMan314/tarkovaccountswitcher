@@ -1,6 +1,6 @@
 # Tarkov Account Switcher
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.7-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
@@ -17,6 +17,8 @@ Multi-account switcher for **Escape from Tarkov** with automatic session managem
 - **Streamer Mode** — Hides email addresses in the UI
 - **System Tray Integration** — Runs in background, auto-minimizes when launcher starts
 - **Single Instance** — Only one app instance can run
+- **Themes** — Five UI themes including Escape from Tarkov–inspired layouts
+- **Per-Account Launcher Options** — EFT or Arena and related launcher preferences per saved account
 
 ## Download
 
@@ -87,19 +89,33 @@ The tool exclusively operates on the **BSG Launcher's local settings file** to s
 
 ## Tech Stack
 
-- **Go** — Native Windows application
-- **lxn/walk** — Native Windows GUI (no Electron, no web views)
+- **Go** — Native Windows application backend
+- **Wails v2** — Desktop shell with embedded **WebView2** (UI is bundled HTML/CSS/JS, no separate browser install beyond the Windows WebView2 runtime)
+- **Vanilla frontend** — Single-page UI under `v2/frontend/dist/` — no Electron, no npm bundler for releases
 - **AES-256-CBC** — Encryption via Go stdlib
-- **Windows API** — Process management and tray integration
+- **Windows API** — Process management, native system tray (`Shell_NotifyIconW`)
 
 ## Building from Source
 
+Active code lives under **`v2/`** (legacy Walk/Electron stacks in the repo root are historical only).
+
+**Prerequisites**
+
+- Go **1.23+** (see `v2/go.mod`; toolchain may pin a newer patch)
+- [Wails CLI v2](https://wails.io/docs/gettingstarted/installation): `go install github.com/wailsapp/wails/v2/cmd/wails@latest`
+- **MinGW-w64 GCC** on `PATH` (Wails/CGO requirement on Windows)
+
+**Commands** (run from **`v2/`**):
+
 ```bash
 cd v2
-go build -ldflags="-s -w -H windowsgui" -o "Tarkov Account Switcher.exe" .
+go mod tidy
+wails build -platform windows/amd64
 ```
 
-Requires Go 1.21+ on Windows.
+Development with hot reload: `wails dev`. Release output: `v2/build/bin/Tarkov Account Switcher.exe`. Before a release build, sync the PE/App version from the updater constant: `go run sync_version.go` (see comments in `v2/sync_version.go`).
+
+Developer-oriented layout, themes, and package map: **`v2/README.md`**.
 
 ## License
 

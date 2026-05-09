@@ -1,5 +1,12 @@
 # Changelog - Tarkov Account Switcher v2
 
+## v2.0.7 (2026-05-09)
+
+### Maintenance
+- Version bump only.
+
+---
+
 ## v2.0.6 (2026-04-19)
 
 ### New Features

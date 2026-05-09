@@ -7,6 +7,7 @@ build*/
 dist/
 release*/
 RELEASE*/
+/*.exe
 
 # v2 Go rewrite - tracked
 !v2/
