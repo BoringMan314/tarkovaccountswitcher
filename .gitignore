@@ -8,6 +8,7 @@ dist/
 release*/
 RELEASE*/
 /*.exe
+/*.zip
 
 # v2 Go rewrite - tracked
 !v2/
