@@ -74,7 +74,7 @@ func (a *App) shutdown(ctx context.Context) {
 // ==================== SYSTEM TRAY ====================
 
 func (a *App) setupSystemTray() {
-	tooltip := "Tarkov Account Switcher " + updater.CurrentVersion
+	tooltip := i18n.TF(i18n.TrayTooltip, map[string]string{"version": updater.CurrentVersion})
 
 	onShow := func() {
 		wailsRuntime.WindowShow(a.ctx)
@@ -217,7 +217,7 @@ func (a *App) GetSettings() SettingsDTO {
 // SetLanguage changes the language
 func (a *App) SetLanguage(lang string) error {
 	if !i18n.IsSupportedLocale(lang) {
-		return fmt.Errorf("unsupported language: %q", lang)
+		return fmt.Errorf("%s", i18n.TF(i18n.ErrUnsupportedLanguage, map[string]string{"lang": lang}))
 	}
 	err := config.SetLanguage(lang)
 	if err != nil {
@@ -253,9 +253,9 @@ func (a *App) SetTheme(id string) error {
 // BrowseLauncherPath opens a native file dialog
 func (a *App) BrowseLauncherPath() (string, error) {
 	return wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
-		Title: "Select BSG Launcher",
+		Title: i18n.T(i18n.DlgSelectLauncher),
 		Filters: []wailsRuntime.FileFilter{
-			{DisplayName: "Executable (*.exe)", Pattern: "*.exe"},
+			{DisplayName: i18n.T(i18n.DlgFilterExe), Pattern: "*.exe"},
 		},
 	})
 }
@@ -270,15 +270,19 @@ func (a *App) GetAllTranslations() map[string]string {
 		i18n.LabelEmail, i18n.PlaceholderEmail, i18n.AddAccountHelp, i18n.BtnAddAccount,
 		i18n.EmptyStateTitle, i18n.EmptyStateSubtitle,
 		i18n.StatusAutoLogin, i18n.StatusLoginReq,
-		i18n.BtnSwitch, i18n.BtnDelete, i18n.ConfirmDelete,
+		i18n.BtnSwitch, i18n.BtnDelete, i18n.ConfirmDelete, i18n.BtnYes, i18n.BtnNo,
 		i18n.SettingsTitle, i18n.LabelLanguage, i18n.LabelLauncherPath,
 		i18n.PlaceholderLauncher, i18n.BtnBrowse, i18n.BtnSave,
 		i18n.LabelAutoStart, i18n.AutoStartHelp, i18n.BtnQuit,
 		i18n.LabelStreamerMode, i18n.StreamerModeHelp,
 		i18n.LabelTheme,
+		i18n.ThemeNameEft, i18n.ThemeNameKilla, i18n.ThemeNameDark, i18n.ThemeNameLight, i18n.ThemeNameCappuccino,
 		i18n.StatusFillFields, i18n.StatusAccountAdded, i18n.StatusAccountDeleted,
 		i18n.StatusLauncherRestart, i18n.StatusAutoLoginActive, i18n.StatusManualLogin,
-		i18n.StatusPathSaved, i18n.StatusEnterPath, i18n.StatusLanguageSaved,
+		i18n.StatusPathSaved, i18n.StatusEnterPath, i18n.StatusLanguageSaved, i18n.StatusThemeSaved,
+		i18n.StatusError, i18n.StatusDeleteFailed,
+		i18n.StatusAutoStartOn, i18n.StatusAutoStartOff, i18n.StatusStreamerOn, i18n.StatusStreamerOff,
+		i18n.AboutVersion, i18n.HtmlPageTitle, i18n.LinkDownload, i18n.FooterPoweredBy,
 		i18n.UpdateAvailableStable, i18n.UpdateAvailableBeta,
 	}
 	result := make(map[string]string, len(keys))
@@ -308,15 +312,17 @@ func (a *App) GetVersion() string {
 
 // ConfirmDelete shows a native confirmation dialog
 func (a *App) ConfirmDelete() (bool, error) {
+	yes := i18n.T(i18n.BtnYes)
+	no := i18n.T(i18n.BtnNo)
 	result, err := wailsRuntime.MessageDialog(a.ctx, wailsRuntime.MessageDialogOptions{
 		Type:          wailsRuntime.QuestionDialog,
 		Title:         i18n.T(i18n.BtnDelete),
 		Message:       i18n.T(i18n.ConfirmDelete),
-		DefaultButton: "No",
-		Buttons:       []string{"Yes", "No"},
+		DefaultButton: no,
+		Buttons:       []string{yes, no},
 	})
 	if err != nil {
 		return false, err
 	}
-	return result == "Yes", nil
+	return result == yes, nil
 }

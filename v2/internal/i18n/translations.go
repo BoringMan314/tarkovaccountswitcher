@@ -43,6 +43,8 @@ const (
 	BtnSwitch          = "btnSwitch"
 	BtnDelete          = "btnDelete"
 	ConfirmDelete      = "confirmDelete"
+	BtnYes             = "btnYes"
+	BtnNo              = "btnNo"
 
 	// Settings Tab
 	SettingsTitle       = "settingsTitle"
@@ -69,8 +71,9 @@ const (
 	SwitchManualLogin = "switchManualLogin"
 
 	// Tray Menu
-	TrayOpen = "trayOpen"
-	TrayQuit = "trayQuit"
+	TrayOpen    = "trayOpen"
+	TrayQuit    = "trayQuit"
+	TrayTooltip = "trayTooltip"
 
 	// Status Messages
 	StatusFillFields      = "statusFillFields"
@@ -85,6 +88,31 @@ const (
 	StatusSaveError       = "statusSaveError"
 	StatusEnterPath       = "statusEnterPath"
 	StatusLanguageSaved   = "statusLanguageSaved"
+	StatusThemeSaved      = "statusThemeSaved"
+	StatusAutoStartOn     = "statusAutoStartOn"
+	StatusAutoStartOff    = "statusAutoStartOff"
+	StatusStreamerOn      = "statusStreamerOn"
+	StatusStreamerOff     = "statusStreamerOff"
+	StatusDeleteFailed    = "statusDeleteFailed"
+
+	// File / system dialogs (backend)
+	DlgSelectLauncher      = "dlgSelectLauncher"
+	DlgFilterExe           = "dlgFilterExe"
+	ErrAccountNotFound     = "errAccountNotFound"
+	ErrUnsupportedLanguage = "errUnsupportedLanguage"
+
+	// App chrome + footer (frontend)
+	AboutVersion    = "aboutVersion"
+	HtmlPageTitle   = "htmlPageTitle"
+	LinkDownload    = "linkDownload"
+	FooterPoweredBy = "footerPoweredBy"
+
+	// Theme names (settings dropdown)
+	ThemeNameEft        = "themeNameEft"
+	ThemeNameKilla      = "themeNameKilla"
+	ThemeNameDark       = "themeNameDark"
+	ThemeNameLight      = "themeNameLight"
+	ThemeNameCappuccino = "themeNameCappuccino"
 
 	// Update Notifications
 	UpdateAvailableStable = "updateAvailableStable"
@@ -115,6 +143,8 @@ var translations = map[string]map[string]string{
 		BtnSwitch:          "Wechseln",
 		BtnDelete:          "Löschen",
 		ConfirmDelete:      "Account wirklich löschen?",
+		BtnYes:             "Ja",
+		BtnNo:              "Nein",
 
 		// Settings Tab
 		SettingsTitle:       "Einstellungen",
@@ -135,8 +165,9 @@ var translations = map[string]map[string]string{
 		SwitchManualLogin: "Bitte einloggen - Session wird automatisch gespeichert!",
 
 		// Tray Menu
-		TrayOpen: "Öffnen",
-		TrayQuit: "Beenden",
+		TrayOpen:    "Öffnen",
+		TrayQuit:    "Beenden",
+		TrayTooltip: "Tarkov Account Switcher {version}",
 
 		// Status Messages
 		StatusFillFields:      "Bitte fülle alle Felder aus",
@@ -151,6 +182,28 @@ var translations = map[string]map[string]string{
 		StatusSaveError:       "Fehler beim Speichern",
 		StatusEnterPath:       "Bitte gib einen Pfad ein",
 		StatusLanguageSaved:   "Sprache gespeichert!",
+		StatusThemeSaved:      "Design gespeichert!",
+		StatusAutoStartOn:     "Autostart: Ein",
+		StatusAutoStartOff:    "Autostart: Aus",
+		StatusStreamerOn:      "Streamer-Modus: Ein",
+		StatusStreamerOff:     "Streamer-Modus: Aus",
+		StatusDeleteFailed:    "Konto konnte nicht gelöscht werden: {error}",
+
+		DlgSelectLauncher:      "BSG Launcher auswählen",
+		DlgFilterExe:           "Programm (*.exe)",
+		ErrAccountNotFound:     "Konto nicht gefunden",
+		ErrUnsupportedLanguage: "Nicht unterstützte Sprache: {lang}",
+
+		AboutVersion:    "Tarkov Account Switcher {version}",
+		HtmlPageTitle:   "Tarkov Account Switcher",
+		LinkDownload:    "Download",
+		FooterPoweredBy: "Unterstützt von",
+
+		ThemeNameEft:        "Escape from Tarkov",
+		ThemeNameKilla:      "Killa Girl",
+		ThemeNameDark:       "Dunkel",
+		ThemeNameLight:      "Hell",
+		ThemeNameCappuccino: "Cappuccino",
 
 		// Update Notifications
 		UpdateAvailableStable: "Update verfügbar: {version} — {url}",
@@ -179,6 +232,8 @@ var translations = map[string]map[string]string{
 		BtnSwitch:          "Switch",
 		BtnDelete:          "Delete",
 		ConfirmDelete:      "Really delete account?",
+		BtnYes:             "Yes",
+		BtnNo:              "No",
 
 		// Settings Tab
 		SettingsTitle:       "Settings",
@@ -199,8 +254,9 @@ var translations = map[string]map[string]string{
 		SwitchManualLogin: "Please login - session will be saved automatically!",
 
 		// Tray Menu
-		TrayOpen: "Open",
-		TrayQuit: "Quit",
+		TrayOpen:    "Open",
+		TrayQuit:    "Quit",
+		TrayTooltip: "Tarkov Account Switcher {version}",
 
 		// Status Messages
 		StatusFillFields:      "Please fill all fields",
@@ -215,6 +271,28 @@ var translations = map[string]map[string]string{
 		StatusSaveError:       "Error saving",
 		StatusEnterPath:       "Please enter a path",
 		StatusLanguageSaved:   "Language saved!",
+		StatusThemeSaved:      "Theme saved!",
+		StatusAutoStartOn:     "Autostart on",
+		StatusAutoStartOff:    "Autostart off",
+		StatusStreamerOn:      "Streamer mode on",
+		StatusStreamerOff:     "Streamer mode off",
+		StatusDeleteFailed:    "Could not delete account: {error}",
+
+		DlgSelectLauncher:      "Select BSG Launcher",
+		DlgFilterExe:           "Executable (*.exe)",
+		ErrAccountNotFound:     "Account not found",
+		ErrUnsupportedLanguage: "Unsupported language: {lang}",
+
+		AboutVersion:    "Tarkov Account Switcher {version}",
+		HtmlPageTitle:   "Tarkov Account Switcher",
+		LinkDownload:    "Download",
+		FooterPoweredBy: "Powered by",
+
+		ThemeNameEft:        "Escape from Tarkov",
+		ThemeNameKilla:      "Killa Girl",
+		ThemeNameDark:       "Dark",
+		ThemeNameLight:      "Light",
+		ThemeNameCappuccino: "Cappuccino",
 
 		// Update Notifications
 		UpdateAvailableStable: "Update available: {version} — {url}",
@@ -240,6 +318,8 @@ var translations = map[string]map[string]string{
 		BtnSwitch:          "切換",
 		BtnDelete:          "刪除",
 		ConfirmDelete:      "確定要刪除此帳號？",
+		BtnYes:             "是",
+		BtnNo:              "否",
 
 		SettingsTitle:       "設定",
 		LabelLanguage:       "語言",
@@ -257,8 +337,9 @@ var translations = map[string]map[string]string{
 		SwitchAutoLogin:   "啟動器已啟動——自動登入中！",
 		SwitchManualLogin: "請登入——工作階段會自動儲存！",
 
-		TrayOpen: "開啟",
-		TrayQuit: "結束",
+		TrayOpen:    "開啟",
+		TrayQuit:    "結束",
+		TrayTooltip: "Tarkov Account Switcher {version}",
 
 		StatusFillFields:      "請填寫所有欄位",
 		StatusAccountAdded:    "✅ 已新增帳號！\n\n正在啟動啟動器…\n請登入——工作階段會自動儲存！",
@@ -272,6 +353,28 @@ var translations = map[string]map[string]string{
 		StatusSaveError:       "儲存時發生錯誤",
 		StatusEnterPath:       "請輸入路徑",
 		StatusLanguageSaved:   "已儲存語言！",
+		StatusThemeSaved:      "已儲存主題！",
+		StatusAutoStartOn:     "已開啟隨 Windows 啟動",
+		StatusAutoStartOff:    "已關閉隨 Windows 啟動",
+		StatusStreamerOn:      "已開啟實況模式",
+		StatusStreamerOff:     "已關閉實況模式",
+		StatusDeleteFailed:    "無法刪除帳號：{error}",
+
+		DlgSelectLauncher:      "選擇 BSG 啟動器",
+		DlgFilterExe:           "執行檔 (*.exe)",
+		ErrAccountNotFound:     "找不到帳號",
+		ErrUnsupportedLanguage: "不支援的語言：{lang}",
+
+		AboutVersion:    "Tarkov Account Switcher {version}",
+		HtmlPageTitle:   "Tarkov Account Switcher",
+		LinkDownload:    "下載",
+		FooterPoweredBy: "技術支援",
+
+		ThemeNameEft:        "逃離塔科夫",
+		ThemeNameKilla:      "Killa Girl",
+		ThemeNameDark:       "深色",
+		ThemeNameLight:      "淺色",
+		ThemeNameCappuccino: "卡布奇諾",
 
 		UpdateAvailableStable: "有可用更新：{version} — {url}",
 		UpdateAvailableBeta:   "有可用 Beta：{version} — {url}",
@@ -296,6 +399,8 @@ var translations = map[string]map[string]string{
 		BtnSwitch:          "切换",
 		BtnDelete:          "删除",
 		ConfirmDelete:      "确定要删除此账号？",
+		BtnYes:             "是",
+		BtnNo:              "否",
 
 		SettingsTitle:       "设置",
 		LabelLanguage:       "语言",
@@ -313,8 +418,9 @@ var translations = map[string]map[string]string{
 		SwitchAutoLogin:   "启动器已启动——自动登录已启用！",
 		SwitchManualLogin: "请登录——会话会自动保存！",
 
-		TrayOpen: "打开",
-		TrayQuit: "退出",
+		TrayOpen:    "打开",
+		TrayQuit:    "退出",
+		TrayTooltip: "Tarkov Account Switcher {version}",
 
 		StatusFillFields:      "请填写所有字段",
 		StatusAccountAdded:    "✅ 已添加账号！\n\n正在启动启动器…\n请登录——会话会自动保存！",
@@ -328,6 +434,28 @@ var translations = map[string]map[string]string{
 		StatusSaveError:       "保存时出错",
 		StatusEnterPath:       "请输入路径",
 		StatusLanguageSaved:   "已保存语言！",
+		StatusThemeSaved:      "已保存主题！",
+		StatusAutoStartOn:     "已开启随 Windows 启动",
+		StatusAutoStartOff:    "已关闭随 Windows 启动",
+		StatusStreamerOn:      "已开启主播模式",
+		StatusStreamerOff:     "已关闭主播模式",
+		StatusDeleteFailed:    "无法删除账号：{error}",
+
+		DlgSelectLauncher:      "选择 BSG 启动器",
+		DlgFilterExe:           "可执行文件 (*.exe)",
+		ErrAccountNotFound:     "找不到账号",
+		ErrUnsupportedLanguage: "不支持的语言：{lang}",
+
+		AboutVersion:    "Tarkov Account Switcher {version}",
+		HtmlPageTitle:   "Tarkov Account Switcher",
+		LinkDownload:    "下载",
+		FooterPoweredBy: "技术支持",
+
+		ThemeNameEft:        "逃离塔科夫",
+		ThemeNameKilla:      "Killa Girl",
+		ThemeNameDark:       "深色",
+		ThemeNameLight:      "浅色",
+		ThemeNameCappuccino: "卡布奇诺",
 
 		UpdateAvailableStable: "有可用更新：{version} — {url}",
 		UpdateAvailableBeta:   "有可用 Beta：{version} — {url}",
@@ -352,6 +480,8 @@ var translations = map[string]map[string]string{
 		BtnSwitch:          "切替",
 		BtnDelete:          "削除",
 		ConfirmDelete:      "このアカウントを削除しますか？",
+		BtnYes:             "はい",
+		BtnNo:              "いいえ",
 
 		SettingsTitle:       "設定",
 		LabelLanguage:       "言語",
@@ -369,8 +499,9 @@ var translations = map[string]map[string]string{
 		SwitchAutoLogin:   "ランチャーを起動しました — 自動ログイン有効！",
 		SwitchManualLogin: "ログインしてください — セッションは自動保存されます！",
 
-		TrayOpen: "開く",
-		TrayQuit: "終了",
+		TrayOpen:    "開く",
+		TrayQuit:    "終了",
+		TrayTooltip: "Tarkov Account Switcher {version}",
 
 		StatusFillFields:      "すべての項目を入力してください",
 		StatusAccountAdded:    "✅ アカウントを追加しました！\n\nランチャーを起動中…\nログインするとセッションが自動保存されます！",
@@ -384,6 +515,28 @@ var translations = map[string]map[string]string{
 		StatusSaveError:       "保存できませんでした",
 		StatusEnterPath:       "パスを入力してください",
 		StatusLanguageSaved:   "言語を保存しました！",
+		StatusThemeSaved:      "テーマを保存しました！",
+		StatusAutoStartOn:     "Windows 起動時に開始：オン",
+		StatusAutoStartOff:    "Windows 起動時に開始：オフ",
+		StatusStreamerOn:      "ストリーマーモード：オン",
+		StatusStreamerOff:     "ストリーマーモード：オフ",
+		StatusDeleteFailed:    "アカウントを削除できませんでした: {error}",
+
+		DlgSelectLauncher:      "BSG ランチャーを選択",
+		DlgFilterExe:           "実行ファイル (*.exe)",
+		ErrAccountNotFound:     "アカウントが見つかりません",
+		ErrUnsupportedLanguage: "未対応の言語: {lang}",
+
+		AboutVersion:    "Tarkov Account Switcher {version}",
+		HtmlPageTitle:   "Tarkov Account Switcher",
+		LinkDownload:    "ダウンロード",
+		FooterPoweredBy: "Powered by",
+
+		ThemeNameEft:        "Escape from Tarkov",
+		ThemeNameKilla:      "Killa Girl",
+		ThemeNameDark:       "ダーク",
+		ThemeNameLight:      "ライト",
+		ThemeNameCappuccino: "カプチーノ",
 
 		UpdateAvailableStable: "アップデートあり: {version} — {url}",
 		UpdateAvailableBeta:   "新しいベータ: {version} — {url}",

@@ -7,6 +7,30 @@
 // Translation cache — loaded from Go on startup and language change
 let T = {};
 
+let settingsStatusClearTimer = null;
+
+function scheduleSettingsStatusClear() {
+    if (settingsStatusClearTimer) {
+        clearTimeout(settingsStatusClearTimer);
+        settingsStatusClearTimer = null;
+    }
+    settingsStatusClearTimer = setTimeout(() => {
+        settingsStatusClearTimer = null;
+        const el = document.getElementById('settings-status');
+        if (el) {
+            el.textContent = '';
+            el.className = 'status-message';
+        }
+    }, 3000);
+}
+
+function cancelSettingsStatusClear() {
+    if (settingsStatusClearTimer) {
+        clearTimeout(settingsStatusClearTimer);
+        settingsStatusClearTimer = null;
+    }
+}
+
 // ======================== INITIALIZATION ========================
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -69,10 +93,13 @@ async function onThemeChange() {
         await window.go.main.App.SetTheme(themeId);
         applyTheme(themeId);
 
-        statusEl.textContent = '\u2713 Theme saved!';
+        statusEl.textContent = '\u2713 ' + t('statusThemeSaved');
         statusEl.className = 'status-message success';
+        scheduleSettingsStatusClear();
     } catch (e) {
         console.error('Theme change failed:', e);
+        statusEl.textContent = tf('statusError', { error: String(e) });
+        statusEl.className = 'status-message error';
     }
 }
 
@@ -131,12 +158,34 @@ async function applyTranslations() {
     setText('settings-streamer-label', t('labelStreamerMode'));
     setText('settings-streamer-help', t('streamerModeHelp'));
     setText('settings-quit-btn', t('btnQuit'));
+    setText('footer-powered-prefix', t('footerPoweredBy'));
+
+    applyThemeSelectLabels();
+
+    document.title = t('htmlPageTitle');
 
     // Version
     try {
         const version = await window.go.main.App.GetVersion();
-        setText('version-text', 'Tarkov Account Switcher ' + version);
+        setText('version-text', tf('aboutVersion', { version }));
     } catch (e) { /* ignore */ }
+}
+
+function applyThemeSelectLabels() {
+    const sel = document.getElementById('settings-theme-select');
+    if (!sel) return;
+    const map = {
+        eft: 'themeNameEft',
+        killa: 'themeNameKilla',
+        dark: 'themeNameDark',
+        light: 'themeNameLight',
+        cappuccino: 'themeNameCappuccino'
+    };
+    for (let i = 0; i < sel.options.length; i++) {
+        const opt = sel.options[i];
+        const key = map[opt.value];
+        if (key) opt.textContent = t(key);
+    }
 }
 
 function setText(id, text) {
@@ -200,7 +249,7 @@ async function loadAccountsTab() {
 
     } catch (e) {
         if (statusEl) {
-            statusEl.textContent = 'Error: ' + e;
+            statusEl.textContent = tf('statusError', { error: String(e) });
             statusEl.className = 'status-message error';
         }
     }
@@ -259,11 +308,11 @@ async function onSwitchAccount(id) {
                 statusEl.className = 'status-message warning';
             }
         } else {
-            statusEl.textContent = '\u274C ' + result.error;
+            statusEl.textContent = tf('statusError', { error: result.error });
             statusEl.className = 'status-message error';
         }
     } catch (e) {
-        statusEl.textContent = '\u274C ' + e;
+        statusEl.textContent = tf('statusError', { error: String(e) });
         statusEl.className = 'status-message error';
     }
 }
@@ -281,6 +330,11 @@ async function onDeleteAccount(id) {
 
         await loadAccountsTab();
     } catch (e) {
+        const statusEl = document.getElementById('accounts-status');
+        if (statusEl) {
+            statusEl.textContent = tf('statusDeleteFailed', { error: String(e) });
+            statusEl.className = 'status-message error';
+        }
         console.error('Delete failed:', e);
     }
 }
@@ -336,7 +390,7 @@ async function onAddAccount() {
         await loadAccountsTab();
         selectTab('accounts');
     } catch (e) {
-        statusEl.textContent = '\u274C ' + e;
+        statusEl.textContent = tf('statusError', { error: String(e) });
         statusEl.className = 'status-message error';
     }
 }
@@ -376,8 +430,11 @@ async function onLanguageChange() {
 
         statusEl.textContent = '\u2713 ' + t('statusLanguageSaved');
         statusEl.className = 'status-message success';
+        scheduleSettingsStatusClear();
     } catch (e) {
         console.error('Language change failed:', e);
+        statusEl.textContent = tf('statusError', { error: String(e) });
+        statusEl.className = 'status-message error';
     }
 }
 
@@ -399,6 +456,7 @@ async function onSavePath() {
     if (!path) {
         statusEl.textContent = '\u26A0\uFE0F ' + t('statusEnterPath');
         statusEl.className = 'status-message warning';
+        scheduleSettingsStatusClear();
         return;
     }
 
@@ -406,8 +464,10 @@ async function onSavePath() {
         await window.go.main.App.SetLauncherPath(path);
         statusEl.textContent = '\u2713 ' + t('statusPathSaved');
         statusEl.className = 'status-message success';
+        scheduleSettingsStatusClear();
     } catch (e) {
-        statusEl.textContent = '\u274C ' + e;
+        cancelSettingsStatusClear();
+        statusEl.textContent = tf('statusError', { error: String(e) });
         statusEl.className = 'status-message error';
     }
 }
@@ -418,11 +478,14 @@ async function onAutoStartToggle() {
 
     try {
         await window.go.main.App.SetAutoStart(checked);
-        statusEl.textContent = '\u2713 Autostart ' + (checked ? 'ON' : 'OFF');
+        statusEl.textContent = '\u2713 ' + (checked ? t('statusAutoStartOn') : t('statusAutoStartOff'));
         statusEl.className = 'status-message success';
+        scheduleSettingsStatusClear();
     } catch (e) {
         console.error('Autostart toggle failed:', e);
         document.getElementById('settings-autostart-check').checked = !checked;
+        statusEl.textContent = tf('statusError', { error: String(e) });
+        statusEl.className = 'status-message error';
     }
 }
 
@@ -432,13 +495,17 @@ async function onStreamerToggle() {
 
     try {
         await window.go.main.App.SetStreamerMode(checked);
-        statusEl.textContent = '\u2713 Streamer Mode ' + (checked ? 'ON' : 'OFF');
+        statusEl.textContent = '\u2713 ' + (checked ? t('statusStreamerOn') : t('statusStreamerOff'));
         statusEl.className = 'status-message success';
+        scheduleSettingsStatusClear();
 
         // Refresh accounts to apply email masking
         await loadAccountsTab();
     } catch (e) {
         console.error('Streamer mode toggle failed:', e);
+        document.getElementById('settings-streamer-check').checked = !checked;
+        statusEl.textContent = tf('statusError', { error: String(e) });
+        statusEl.className = 'status-message error';
     }
 }
 
@@ -478,18 +545,22 @@ function setupWailsEvents() {
         if (data && data.stable) {
             const v = data.stable.Version || data.stable.version || '';
             if (v !== currentVersion) {
+                const href = data.stable.ReleaseURL || data.stable.releaseURL || '#';
+                const dl = escapeHtml(t('linkDownload'));
                 lines.push(tf('updateAvailableStable', {
                     version: v,
-                    url: '<a href="' + (data.stable.ReleaseURL || data.stable.releaseURL || '#') + '" target="_blank">Download</a>'
+                    url: '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + dl + '</a>'
                 }));
             }
         }
         if (data && data.beta) {
             const v = data.beta.Version || data.beta.version || '';
             if (v !== currentVersion) {
+                const href = data.beta.ReleaseURL || data.beta.releaseURL || '#';
+                const dl = escapeHtml(t('linkDownload'));
                 lines.push(tf('updateAvailableBeta', {
                     version: v,
-                    url: '<a href="' + (data.beta.ReleaseURL || data.beta.releaseURL || '#') + '" target="_blank">Download</a>'
+                    url: '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + dl + '</a>'
                 }));
             }
         }
