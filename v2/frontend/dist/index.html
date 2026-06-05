@@ -75,8 +75,11 @@
         <!-- Language -->
         <label class="form-label" id="settings-lang-label">Language</label>
         <select class="form-select" id="settings-lang-select">
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
+            <option value="en_US">English</option>
+            <option value="de_DE">Deutsch</option>
+            <option value="zh_TW">繁體中文</option>
+            <option value="zh_CN">简体中文</option>
+            <option value="ja_JP">日本語</option>
         </select>
 
         <div class="form-separator"></div>
@@ -122,9 +125,9 @@
 
         <div class="form-separator"></div>
 
-        <div id="settings-status" class="status-message"></div>
-
         <div class="spacer"></div>
+
+        <div id="settings-status" class="status-message"></div>
 
         <!-- Quit Button -->
         <div class="btn-row-center" style="margin-bottom: 14px;">
@@ -134,7 +137,7 @@
         <!-- Footer -->
         <div class="settings-footer">
             <p class="version-text" id="version-text">Tarkov Account Switcher</p>
-            <p class="powered-by">Powered by <a href="https://tarkov-stammtisch.de" target="_blank">Tarkov-Stammtisch.de</a></p>
+            <p class="powered-by"><span id="footer-powered-prefix"></span> <a href="https://tarkov-stammtisch.de" target="_blank" rel="noopener noreferrer">Tarkov-Stammtisch.de</a></p>
         </div>
     </div>
 

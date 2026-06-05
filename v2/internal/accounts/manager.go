@@ -233,7 +233,7 @@ func SwitchAccount(id string) *SwitchResult {
 
 	account, err := GetAccountByID(id)
 	if err != nil || account == nil {
-		return &SwitchResult{Success: false, Error: "Account not found"}
+		return &SwitchResult{Success: false, Error: i18n.T(i18n.ErrAccountNotFound)}
 	}
 
 	if len(account.LauncherSession) > 0 {
