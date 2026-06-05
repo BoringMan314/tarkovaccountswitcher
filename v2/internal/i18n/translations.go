@@ -575,12 +575,12 @@ func NormalizeLegacyLocale(lang string) string {
 
 // SetLanguage sets the entire UI language.
 func SetLanguage(lang string) {
-	switch lang {
-	case LangEN_US, LangDE_DE, LangZH_TW, LangZH_CN, LangJA_JP:
-		languageMutex.Lock()
-		currentLanguage = lang
-		languageMutex.Unlock()
+	if !IsSupportedLocale(lang) {
+		return
 	}
+	languageMutex.Lock()
+	currentLanguage = lang
+	languageMutex.Unlock()
 }
 
 // GetLanguage returns the current language
