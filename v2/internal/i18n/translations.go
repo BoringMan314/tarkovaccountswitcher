@@ -553,6 +553,26 @@ func IsSupportedLocale(lang string) bool {
 	}
 }
 
+// NormalizeLegacyLocale maps short locale codes from older versions
+// (e.g. "de", "en") onto the canonical tags so an existing user's explicit
+// language choice survives the upgrade. Returns "" for anything unrecognized.
+func NormalizeLegacyLocale(lang string) string {
+	switch lang {
+	case "en":
+		return LangEN_US
+	case "de":
+		return LangDE_DE
+	case "zh-TW", "zh_TW":
+		return LangZH_TW
+	case "zh", "zh-CN", "zh_CN":
+		return LangZH_CN
+	case "ja":
+		return LangJA_JP
+	default:
+		return ""
+	}
+}
+
 // SetLanguage sets the entire UI language.
 func SetLanguage(lang string) {
 	switch lang {

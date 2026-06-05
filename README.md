@@ -15,7 +15,7 @@ Multi-account switcher for **Escape from Tarkov** with automatic session managem
 - **No Password Storage** — Only email + session tokens (AES-256 encrypted)
 - **Auto-Login** — Automatically logs in after first login
 - **Update Notifications** — Checks GitHub Releases on startup, shows banner with download link
-- **Multi-Language** — German & English with automatic system language detection
+- **Multi-Language** — English, German, Traditional Chinese, Simplified Chinese & Japanese with automatic system language detection
 - **Streamer Mode** — Hides email addresses in the UI
 - **System Tray Integration** — Runs in background, auto-minimizes when launcher starts
 - **Single Instance** — Only one app instance can run

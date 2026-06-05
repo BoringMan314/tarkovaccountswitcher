@@ -29,14 +29,30 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 
-	// Load settings and set language
+	// Load settings and set language. Accept canonical tags directly; map known
+	// legacy short codes (e.g. "de"/"en") so an existing user's choice survives;
+	// otherwise fall back to the system UI language.
 	settings := config.GetSettings()
-	if i18n.IsSupportedLocale(settings.Language) {
-		i18n.SetLanguage(settings.Language)
+	lang := settings.Language
+	if !i18n.IsSupportedLocale(lang) {
+		if mapped := i18n.NormalizeLegacyLocale(lang); mapped != "" {
+			lang = mapped
+		}
+	}
+	if i18n.IsSupportedLocale(lang) {
+		i18n.SetLanguage(lang)
+		// Persist the normalized tag so the migration only happens once.
+		if lang != settings.Language {
+			if err := config.SetLanguage(lang); err != nil {
+				fmt.Printf("i18n: failed to persist migrated locale: %v\n", err)
+			}
+		}
 	} else {
 		i18n.SetLanguage(config.GetSystemLanguage())
-		if settings.Language != "" && settings.Language != i18n.GetLanguage() {
-			_ = config.SetLanguage(i18n.GetLanguage())
+		if settings.Language != "" {
+			if err := config.SetLanguage(i18n.GetLanguage()); err != nil {
+				fmt.Printf("i18n: failed to persist fallback locale: %v\n", err)
+			}
 		}
 	}
 
