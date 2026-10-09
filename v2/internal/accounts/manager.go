@@ -261,9 +261,9 @@ func UpdateAccountSession(id string, session json.RawMessage) error {
 
 // SwitchAccount switches to the specified account.
 func SwitchAccount(id string) *SwitchResult {
-	// Capture any refreshed tokens from the currently logged-in account first.
-	SaveCurrentAccountSession()
-
+	// Do not save the current settings back to an account here. Steam and BSG
+	// launchers share this file, and its login field can identify one account
+	// while its tokens belong to the other platform.
 	launcher.KillLauncher()
 	launcher.ClearGameCache()
 
@@ -282,6 +282,10 @@ func SwitchAccount(id string) *SwitchResult {
 		if launcher.OnLauncherStarted != nil {
 			launcher.OnLauncherStarted()
 		}
+		go func() {
+			time.Sleep(2 * time.Second)
+			StartWatcher(id, account.Email, account.LauncherSession)
+		}()
 		return &SwitchResult{
 			Success:     true,
 			AccountName: account.Name,
@@ -314,42 +318,6 @@ func SwitchAccount(id string) *SwitchResult {
 		HasSession:  false,
 		Message:     i18n.T(i18n.SwitchManualLogin),
 	}
-}
-
-// SaveCurrentAccountSession captures the launcher's current session into whichever
-// stored account matches the logged-in email. No-op if no match.
-func SaveCurrentAccountSession() {
-	data, err := os.ReadFile(config.GetPaths().LauncherSettingsPath)
-	if err != nil {
-		return
-	}
-	var launcherSettings map[string]any
-	if err := json.Unmarshal(data, &launcherSettings); err != nil {
-		return
-	}
-
-	login, _ := launcherSettings["login"].(string)
-	at, _ := launcherSettings["at"].(string)
-	rt, _ := launcherSettings["rt"].(string)
-	if login == "" || at == "" || rt == "" {
-		return
-	}
-
-	sessionData, err := json.Marshal(BuildAuthSession(launcherSettings))
-	if err != nil {
-		return
-	}
-
-	_ = mutate(func(accs []Account) ([]Account, error) {
-		for i := range accs {
-			if accs[i].Email == login {
-				accs[i].LauncherSession = sessionData
-				accs[i].SessionCaptured = time.Now().Format(time.RFC3339)
-				break
-			}
-		}
-		return accs, nil
-	})
 }
 
 // BuildAuthSession creates the session map from launcher settings.

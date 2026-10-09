@@ -21,7 +21,17 @@ var (
 
 // StartWatcher starts watching for session tokens for the given account.
 // Any previously running watcher is stopped first.
-func StartWatcher(accountID, expectedEmail string) {
+func StartWatcher(accountID, expectedEmail string, previousSession ...json.RawMessage) {
+	var previousAccessToken, previousRefreshToken string
+	if len(previousSession) > 0 {
+		var session map[string]any
+		if err := json.Unmarshal(previousSession[0], &session); err == nil {
+			previousAccessToken, _ = session["at"].(string)
+			previousRefreshToken, _ = session["rt"].(string)
+		}
+	}
+	trackTokenRefresh := previousAccessToken != "" || previousRefreshToken != ""
+
 	watcherMutex.Lock()
 	if watcherRunning && stopChan != nil {
 		close(stopChan)
@@ -69,6 +79,9 @@ func StartWatcher(accountID, expectedEmail string) {
 			at, _ := launcherSettings["at"].(string)
 			rt, _ := launcherSettings["rt"].(string)
 			if login != expectedEmail || at == "" || rt == "" {
+				continue
+			}
+			if trackTokenRefresh && at == previousAccessToken && rt == previousRefreshToken {
 				continue
 			}
 

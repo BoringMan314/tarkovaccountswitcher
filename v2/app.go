@@ -141,25 +141,26 @@ func (a *App) GetAccounts() ([]AccountDTO, error) {
 	return dtos, nil
 }
 
-// resizeWindowToFit sizes the window to comfortably fit the given number of
-// account cards. Called on every accounts list fetch; the window grows or
-// shrinks with the list. Uses a native Win32 SetWindowPos helper so the
-// user's manual width stays intact (Wails' WindowSetSize is not DPI-stable
-// on Windows when the width is round-tripped back in).
+// resizeWindowToFit sizes the window to show three to five account cards.
+// Called on every accounts list fetch; extra accounts remain scrollable. Uses
+// a native Win32 SetWindowPos helper so the user's manual width stays intact
+// (Wails' WindowSetSize is not DPI-stable on Windows when width is round-tripped).
 func (a *App) resizeWindowToFit(count int) {
 	const (
-		chrome  = 180 // title bar + tab bar + panel padding + update banner room
-		perCard = 100 // card body + 6px gap — generous to avoid any overflow
-		safety  = 40
-		floor   = 380
+		chrome   = 180 // title bar + tab bar + panel padding + update banner room
+		perCard  = 100 // card body + 6px gap — generous to avoid any overflow
+		safety   = 40
+		minCards = 3
+		maxCards = 5
 	)
-	needed := floor
-	if count > 0 {
-		needed = chrome + perCard*count + safety
-		if needed < floor {
-			needed = floor
-		}
+	visibleCards := count
+	if visibleCards < minCards {
+		visibleCards = minCards
 	}
+	if visibleCards > maxCards {
+		visibleCards = maxCards
+	}
+	needed := chrome + perCard*visibleCards + safety
 	if screens, err := wailsRuntime.ScreenGetAll(a.ctx); err == nil {
 		for _, s := range screens {
 			if !s.IsCurrent {
