@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"tarkov-account-switcher/internal/config"
 )
@@ -51,7 +52,15 @@ func UpdateLauncherAccount(email string) error {
 		return err
 	}
 
-	// Delete session files to force re-login
+	clearLauncherSessionFiles(launcherDataPath)
+
+	return nil
+}
+
+// clearLauncherSessionFiles removes separate launcher auth caches that can
+// override the credentials in settings. This matters when Steam and the
+// standalone launcher have both written to the shared launcher data folder.
+func clearLauncherSessionFiles(launcherDataPath string) {
 	sessionFiles := []string{
 		"user.json",
 		"session",
@@ -67,8 +76,6 @@ func UpdateLauncherAccount(email string) error {
 		filePath := filepath.Join(launcherDataPath, file)
 		os.Remove(filePath) // Ignore errors
 	}
-
-	return nil
 }
 
 // RestoreLauncherSession restores a saved launcher session
@@ -97,8 +104,23 @@ func RestoreLauncherSession(sessionData json.RawMessage) error {
 		}
 	}
 
-	// Restore auth-related fields AND selectedGame from saved session
-	// Preserve everything else (games, UI preferences) from current launcher state
+	// Remove leftover Steam/launcher auth caches before writing the selected
+	// account's saved tokens. Otherwise the launcher can prefer stale cached
+	// credentials and prompt for the password again.
+	clearLauncherSessionFiles(filepath.Dir(paths.LauncherSettingsPath))
+
+	// Remove auth-related fields left by Steam or another launcher session.
+	// The settings schema can change between launcher versions, so preserve
+	// non-auth preferences while dropping fields whose names indicate identity
+	// or credentials.
+	for field := range existingSettings {
+		if isLauncherAuthSetting(field) {
+			delete(existingSettings, field)
+		}
+	}
+
+	// Restore the selected account's auth fields and selected game, while
+	// keeping non-auth game state and UI preferences from the current settings.
 	authFields := []string{"login", "at", "rt", "atet", "keepLoggedIn", "saveLogin", "selectedGame", "sysInfCheck"}
 	for _, field := range authFields {
 		if val, ok := savedSession[field]; ok {
@@ -125,6 +147,16 @@ func RestoreLauncherSession(sessionData json.RawMessage) error {
 	}
 
 	return nil
+}
+
+func isLauncherAuthSetting(field string) bool {
+	key := strings.ToLower(field)
+	for _, marker := range []string{"auth", "token", "session", "credential", "identity", "steam", "password", "provider", "login", "account"} {
+		if strings.Contains(key, marker) {
+			return true
+		}
+	}
+	return key == "user" || strings.HasPrefix(key, "user_") || strings.HasSuffix(key, "_user")
 }
 
 // GetGameSettingsPath returns the path to the EFT Game.ini file
