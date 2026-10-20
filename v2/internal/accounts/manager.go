@@ -196,7 +196,7 @@ func AddAccount(name, email string) (string, error) {
 	if launcher.OnLauncherStarted != nil {
 		launcher.OnLauncherStarted()
 	}
-	WatchLauncherSession()
+	WatchLauncherSession(newAccount.ID)
 
 	return newAccount.ID, nil
 }
@@ -220,45 +220,42 @@ func DeleteAccount(id string) error {
 // fresh login. Closing it here, while shutdown is still blocked, gives it time
 // to save; the result is then stored for the matching account.
 func SaveSessionBeforeShutdown() {
-	if !launcher.IsOnlyConfiguredLauncherRunning() {
+	if !launcher.IsOnlyConfiguredLauncherRunning() || !launcher.IsSwitcherStartedLauncherRunning() {
 		return
 	}
 	// No force-kill fallback: Windows terminates the launcher anyway.
 	if launcher.CloseLauncher(8 * time.Second) {
-		captureLauncherSession()
+		captureLauncherSession(CurrentAccountID())
 	}
 }
 
-// closeLauncherSavingSession closes the launcher so it writes its current
-// tokens, then stores them for the matching account. Must run before anything
-// rewrites the launcher settings file. Skips the capture if another launcher
-// installation (Steam) was running, since it shares the settings file.
+// closeLauncherSavingSession closes the official launcher and saves its tokens
+// only if this switcher started that exact process. A manually reopened
+// launcher may carry Steam-injected state and must not overwrite a saved account.
 func closeLauncherSavingSession() {
-	// With no launcher running, the file holds what the launcher last saved,
-	// which may be newer than the stored session (e.g. a token refresh when
-	// the user started the launcher directly). Capture it before a switch
-	// overwrites it.
-	capture := launcher.IsOnlyConfiguredLauncherRunning() || !launcher.IsLauncherRunning()
+	capture := launcher.IsOnlyConfiguredLauncherRunning() && launcher.IsSwitcherStartedLauncherRunning()
 	launcher.KillLauncher()
 	if capture {
-		captureLauncherSession()
+		captureLauncherSession(CurrentAccountID())
 	}
 }
 
-// captureLauncherSession stores the session from the launcher settings file
-// for the account whose email matches its login. Returns that account's ID if
-// its saved session changed, "" otherwise.
-func captureLauncherSession() string {
-	launcherSettings, login, err := readLauncherAuth()
+// captureLauncherSession stores the official launcher's session for the
+// account selected in the switcher. Returns its ID if the session changed.
+func captureLauncherSession(accountID string) string {
+	if accountID == "" {
+		return ""
+	}
+	launcherSettings, _, err := readLauncherAuth()
 	if err != nil || launcherSettings == nil {
 		return ""
 	}
-	return storeLauncherSession(launcherSettings, login)
+	return storeLauncherSession(launcherSettings, accountID)
 }
 
 var errSessionUnchanged = errors.New("session unchanged")
 
-func storeLauncherSession(launcherSettings map[string]any, login string) string {
+func storeLauncherSession(launcherSettings map[string]any, accountID string) string {
 	sessionData, err := json.Marshal(BuildAuthSession(launcherSettings))
 	if err != nil {
 		return ""
@@ -268,7 +265,7 @@ func storeLauncherSession(launcherSettings map[string]any, login string) string 
 	var capturedID string
 	err = mutate(func(accs []Account) ([]Account, error) {
 		for i := range accs {
-			if !sameEmail(accs[i].Email, login) {
+			if accs[i].ID != accountID {
 				continue
 			}
 			if savedAT, savedRT := savedTokens(accs[i]); savedAT == at && savedRT == rt {
@@ -322,10 +319,6 @@ func readLauncherAuth() (map[string]any, string, error) {
 		return nil, "", nil
 	}
 	return launcherSettings, login, nil
-}
-
-func sameEmail(a, b string) bool {
-	return strings.EqualFold(strings.TrimSpace(a), strings.TrimSpace(b))
 }
 
 // ReorderAccounts persists accounts in the given ID order.
@@ -389,7 +382,7 @@ func SwitchAccount(id string) *SwitchResult {
 		if launcher.OnLauncherStarted != nil {
 			launcher.OnLauncherStarted()
 		}
-		WatchLauncherSession()
+		WatchLauncherSession(id)
 		return &SwitchResult{
 			Success:     true,
 			AccountName: account.Name,
@@ -409,7 +402,7 @@ func SwitchAccount(id string) *SwitchResult {
 	if launcher.OnLauncherStarted != nil {
 		launcher.OnLauncherStarted()
 	}
-	WatchLauncherSession()
+	WatchLauncherSession(id)
 
 	return &SwitchResult{
 		Success:     true,

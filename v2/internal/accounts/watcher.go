@@ -10,6 +10,7 @@ import (
 var (
 	watchMu       sync.Mutex
 	watchDeadline time.Time
+	activeAccount string
 
 	// SessionCapturedCallback is called when a session is captured
 	SessionCapturedCallback func(accountID string)
@@ -20,10 +21,11 @@ var (
 // saved session). Calling it again extends the window. Kept short on purpose:
 // security software treats an app that keeps reading another program's login
 // tokens as a credential stealer. Captures pause while another launcher
-// installation (Steam) is running, since it shares the settings file.
-func WatchLauncherSession() {
+// installation is running; only the configured official launcher is tracked.
+func WatchLauncherSession(accountID string) {
 	watchMu.Lock()
 	defer watchMu.Unlock()
+	activeAccount = accountID
 	running := time.Now().Before(watchDeadline)
 	watchDeadline = time.Now().Add(5 * time.Minute)
 	if running {
@@ -39,12 +41,21 @@ func WatchLauncherSession() {
 			if expired {
 				return
 			}
-			if !launcher.IsOnlyConfiguredLauncherRunning() {
+			if !launcher.IsOnlyConfiguredLauncherRunning() || !launcher.IsSwitcherStartedLauncherRunning() {
 				continue
 			}
-			if id := captureLauncherSession(); id != "" && SessionCapturedCallback != nil {
+			if id := captureLauncherSession(CurrentAccountID()); id != "" && SessionCapturedCallback != nil {
 				SessionCapturedCallback(id)
 			}
 		}
 	}()
+}
+
+// CurrentAccountID is the account currently selected for the official BSG
+// Launcher. Do not infer identity from launcher login text, which Steam may
+// inject independently.
+func CurrentAccountID() string {
+	watchMu.Lock()
+	defer watchMu.Unlock()
+	return activeAccount
 }
