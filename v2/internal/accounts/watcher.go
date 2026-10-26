@@ -1,6 +1,7 @@
 package accounts
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -8,54 +9,82 @@ import (
 )
 
 var (
-	watchMu       sync.Mutex
-	watchDeadline time.Time
-	activeAccount string
+	watchMu         sync.Mutex
+	watchDeadline   time.Time
+	watchRunning    bool
+	watchGeneration uint64
+	activeAccount   string
 
-	// SessionCapturedCallback is called when a session is captured
+	// SessionCapturedCallback is called when a session is captured.
 	SessionCapturedCallback func(accountID string)
 )
 
-// WatchLauncherSession stores session changes the launcher writes for the
-// next 5 minutes (e.g. the login after switching to an account without a
-// saved session). Calling it again extends the window. Kept short on purpose:
-// security software treats an app that keeps reading another program's login
-// tokens as a credential stealer. Captures pause while another launcher
-// installation is running; only the configured official launcher is tracked.
+// WatchLauncherSession watches briefly for a new or rotated session. The
+// launcher settings file is shared by the official and Steam launchers, so
+// capture only while the switcher-started configured launcher is the sole
+// launcher installation running.
 func WatchLauncherSession(accountID string) {
 	watchMu.Lock()
-	defer watchMu.Unlock()
+	watchGeneration++
 	activeAccount = accountID
-	running := time.Now().Before(watchDeadline)
 	watchDeadline = time.Now().Add(5 * time.Minute)
-	if running {
-		return
+	if !watchRunning {
+		watchRunning = true
+		go watchLauncherSessionLoop()
 	}
-	go func() {
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for range ticker.C {
-			watchMu.Lock()
-			expired := time.Now().After(watchDeadline)
-			watchMu.Unlock()
-			if expired {
-				return
-			}
-			if !launcher.IsOnlyConfiguredLauncherRunning() || !launcher.IsSwitcherStartedLauncherRunning() {
-				continue
-			}
-			if id := captureLauncherSession(CurrentAccountID()); id != "" && SessionCapturedCallback != nil {
-				SessionCapturedCallback(id)
-			}
-		}
-	}()
+	watchMu.Unlock()
 }
 
-// CurrentAccountID is the account currently selected for the official BSG
-// Launcher. Do not infer identity from launcher login text, which Steam may
-// inject independently.
+// StopLauncherSessionWatch prevents a previous launch from being associated
+// with the account selected by the next switch.
+func StopLauncherSessionWatch() {
+	watchMu.Lock()
+	watchGeneration++
+	activeAccount = ""
+	watchMu.Unlock()
+}
+
+// CurrentAccountID reports the account associated with the active launcher.
 func CurrentAccountID() string {
 	watchMu.Lock()
 	defer watchMu.Unlock()
 	return activeAccount
+}
+
+func watchLauncherSessionLoop() {
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for range ticker.C {
+		watchMu.Lock()
+		if time.Now().After(watchDeadline) {
+			watchRunning = false
+			watchMu.Unlock()
+			return
+		}
+		accountID, generation := activeAccount, watchGeneration
+		watchMu.Unlock()
+
+		if accountID == "" || !launcher.IsOnlyConfiguredLauncherRunning() || !launcher.IsSwitcherStartedLauncherRunning() {
+			continue
+		}
+		settings, login, err := readLauncherAuth()
+		if err != nil || settings == nil {
+			continue
+		}
+		account, err := GetAccountByID(accountID)
+		if err != nil || account == nil || !strings.EqualFold(strings.TrimSpace(login), strings.TrimSpace(account.Email)) {
+			continue
+		}
+
+		watchMu.Lock()
+		if activeAccount != accountID || watchGeneration != generation {
+			watchMu.Unlock()
+			continue
+		}
+		capturedID := storeLauncherSession(settings, accountID)
+		watchMu.Unlock()
+		if capturedID != "" && SessionCapturedCallback != nil {
+			SessionCapturedCallback(capturedID)
+		}
+	}
 }

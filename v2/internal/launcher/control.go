@@ -1,6 +1,7 @@
 package launcher
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,8 +54,13 @@ func KillLauncher() error {
 	if CloseLauncher(8 * time.Second) {
 		return nil
 	}
-	hiddenCommand("taskkill", "/F", "/IM", launcherExe, "/T").Run()
-	waitForLauncherExit(3 * time.Second)
+	killErr := hiddenCommand("taskkill", "/F", "/IM", launcherExe, "/T").Run()
+	if !waitForLauncherExit(3 * time.Second) {
+		if killErr != nil {
+			return killErr
+		}
+		return errors.New("BSG Launcher is still running; close the Steam and official launchers before switching")
+	}
 	return nil
 }
 
