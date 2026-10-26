@@ -1,10 +1,12 @@
 package launcher
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 	"unsafe"
@@ -15,6 +17,11 @@ import (
 )
 
 const launcherExe = "BsgLauncher.exe"
+
+var (
+	startedLauncherMu  sync.RWMutex
+	startedLauncherPID uint32
+)
 
 // CloseLauncher asks the BSG launcher to exit cleanly. The launcher keeps
 // tokens it refreshes after a raid only in memory and writes them to its
@@ -47,8 +54,13 @@ func KillLauncher() error {
 	if CloseLauncher(8 * time.Second) {
 		return nil
 	}
-	hiddenCommand("taskkill", "/F", "/IM", launcherExe, "/T").Run()
-	waitForLauncherExit(3 * time.Second)
+	killErr := hiddenCommand("taskkill", "/F", "/IM", launcherExe, "/T").Run()
+	if !waitForLauncherExit(3 * time.Second) {
+		if killErr != nil {
+			return killErr
+		}
+		return errors.New("BSG Launcher is still running; close the Steam and official launchers before switching")
+	}
 	return nil
 }
 
@@ -78,6 +90,9 @@ func StartLauncher() error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	startedLauncherMu.Lock()
+	startedLauncherPID = uint32(cmd.Process.Pid)
+	startedLauncherMu.Unlock()
 	_ = cmd.Process.Release()
 	return nil
 }
@@ -87,9 +102,23 @@ func IsLauncherRunning() bool {
 	return len(launcherProcesses()) > 0
 }
 
+// IsSwitcherStartedLauncherRunning reports whether the launcher instance
+// started by this process is still running. A manually opened launcher may
+// contain another account's state and must not be saved under a stale ID.
+func IsSwitcherStartedLauncherRunning() bool {
+	startedLauncherMu.RLock()
+	pid := startedLauncherPID
+	startedLauncherMu.RUnlock()
+	if pid == 0 {
+		return false
+	}
+	process, ok := launcherProcesses()[pid]
+	return ok && strings.EqualFold(filepath.Clean(process.path), filepath.Clean(config.GetSettings().LauncherPath))
+}
+
 // IsOnlyConfiguredLauncherRunning reports whether all running BSG launcher
-// instances are from the configured installation. Steam and official installs
-// share the settings file, so session capture must pause if both are running.
+// instances are from the configured official installation. Session capture
+// pauses if Steam or another launcher installation is running.
 func IsOnlyConfiguredLauncherRunning() bool {
 	procs := launcherProcesses()
 	if len(procs) == 0 {
